@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  /* Gradient text utility */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 bg-clip-text text-transparent;
+  }
+  
+  /* Custom button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 transform hover:scale-105 shadow-medium;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-soft;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-soft border border-gray-100 overflow-hidden transition-all duration-200;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-medium hover:border-gray-200 hover:-translate-y-1;
+  }
+  
+  /* Form styles */
+  .form-input {
+    @apply block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
+  }
+  
+  .form-select {
+    @apply block w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
+  }
+  
+  .form-textarea {
+    @apply block w-full px-4 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white resize-none;
+  }
+  
+  /* Progress bar styles */
+  .progress-bar {
+    @apply w-full bg-gray-200 rounded-full h-3 overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-1000 ease-out;
+  }
+  
+  /* Score badge styles */
+  .score-excellent {
+    @apply bg-success-100 text-success-800 border border-success-200;
+  }
+  
+  .score-good {
+    @apply bg-primary-100 text-primary-800 border border-primary-200;
+  }
+  
+  .score-moderate {
+    @apply bg-warning-100 text-warning-800 border border-warning-200;
+  }
+  
+  .score-poor {
+    @apply bg-danger-100 text-danger-800 border border-danger-200;
+  }
+}

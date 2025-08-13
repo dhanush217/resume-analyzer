@@ -1,0 +1,29 @@
+{
+  "name": "ai-resume-analyzer",
+  "version": "1.0.0",
+  "description": "AI-Powered Resume Analyzer with React frontend and Node.js backend",
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "concurrently": "^8.2.2",
+    "react-scripts": "^5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
