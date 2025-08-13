@@ -2,27 +2,31 @@ import React from 'react';
 import './index.css';
 import App from './App';
 
-// React 18 compatible rendering with fallback for older versions
-const renderApp = () => {
-  const appElement = (
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+// React 18 compatible rendering
+let ReactDOM;
+let createRoot;
 
-  const rootElement = document.getElementById('root');
+try {
+  // Try to import React 18 createRoot
+  const ReactDOMClient = require('react-dom/client');
+  createRoot = ReactDOMClient.createRoot;
+} catch (e) {
+  // Fallback to React 17 render
+  ReactDOM = require('react-dom');
+}
 
-  // Try React 18 createRoot API first
-  try {
-    const { createRoot } = require('react-dom/client');
-    const root = createRoot(rootElement);
-    root.render(appElement);
-  } catch (error) {
-    // Fallback to React 17 API if React 18 is not available
-    console.warn('React 18 createRoot not available, falling back to ReactDOM.render');
-    const ReactDOM = require('react-dom');
-    ReactDOM.render(appElement, rootElement);
-  }
-};
+const container = document.getElementById('root');
+const app = (
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
 
-renderApp();
+if (createRoot) {
+  // React 18
+  const root = createRoot(container);
+  root.render(app);
+} else {
+  // React 17 fallback
+  ReactDOM.render(app, container);
+}

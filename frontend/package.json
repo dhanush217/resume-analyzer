@@ -46,13 +46,7 @@
     ]
   },
   "overrides": {
-    "nth-check": "^2.1.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "resolutions": {
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "nth-check": "^2.1.1"
   },
   "proxy": "http://localhost:5000"
 }
