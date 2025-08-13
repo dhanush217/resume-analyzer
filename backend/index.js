@@ -6,20 +6,24 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const path = require('path');
 const fs = require('fs');
+
+// Load configuration
+const config = require('./config/config');
 const { atsKeywords, getKeywordsForRole, getAllKeywordsForRole } = require('./atsKeywords');
 const { analyzeResumeWithGemini, analyzeResumeWithKeywords } = require('./aiService');
 
 const app = express();
-const port = 5000;
+const port = config.server.port;
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+    const uploadPath = config.upload.uploadDir.endsWith('/') ?
+      config.upload.uploadDir : config.upload.uploadDir + '/';
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
     }
-    cb(null, uploadDir);
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
@@ -29,16 +33,15 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.docx', '.txt', '.doc'];
     const fileExt = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(fileExt)) {
+    if (config.upload.allowedTypes.includes(fileExt)) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Supported formats: PDF, DOCX, TXT, DOC. For best results, use PDF or DOCX.'));
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: config.upload.maxFileSize
   }
 });
 
@@ -191,8 +194,8 @@ async function extractTextFromFile(filePath, fileType) {
     // Cache the result for future use
     extractionCache.set(cacheKey, extractedText);
 
-    // Clean up cache if it gets too large (keep last 50 entries)
-    if (extractionCache.size > 50) {
+    // Clean up cache if it gets too large
+    if (extractionCache.size > config.cache.maxSize) {
       const firstKey = extractionCache.keys().next().value;
       extractionCache.delete(firstKey);
     }

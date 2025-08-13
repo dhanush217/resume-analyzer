@@ -4,11 +4,11 @@
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const config = require('./config/config');
 const { getKeywordsForRole } = require('./atsKeywords');
 
-// Initialize Gemini AI
-const GEMINI_API_KEY = 'AIzaSyCgr_fgSThl11jLj7yjsZME6VWXloN63iA';
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+// Initialize Gemini AI with configuration
+const genAI = config.ai.geminiApiKey ? new GoogleGenerativeAI(config.ai.geminiApiKey) : null;
 
 /**
  * Generate AI-powered resume analysis using Gemini
@@ -18,7 +18,12 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
  */
 async function analyzeResumeWithGemini(resumeText, jobRole) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Check if API key is available
+    if (!genAI) {
+      throw new Error('Gemini API key not configured. Please set GEMINI_API_KEY in environment variables.');
+    }
+
+    const model = genAI.getGenerativeModel({ model: config.ai.model });
     
     const roleKeywords = getKeywordsForRole(jobRole);
     const technicalKeywords = roleKeywords.technical || [];

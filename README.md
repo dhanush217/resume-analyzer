@@ -140,9 +140,21 @@ cd ..
 
 ### Development Setup
 
+**Environment Configuration:**
+
+1. **Backend Environment Setup**
+```bash
+cd backend
+cp .env.example .env
+```
+Edit the `.env` file and add your Google Gemini API key:
+```env
+GEMINI_API_KEY=your_actual_api_key_here
+```
+
 **Quick Start Commands:**
 
-1. **Frontend Setup & Run**
+2. **Frontend Setup & Run**
 ```bash
 cd frontend
 npm install
@@ -150,7 +162,7 @@ npm start
 ```
 The frontend will run on `http://localhost:3000`
 
-2. **Backend Setup & Run** (in a new terminal)
+3. **Backend Setup & Run** (in a new terminal)
 ```bash
 cd backend
 npm install
@@ -158,8 +170,27 @@ npm start
 ```
 The backend will run on `http://localhost:5000`
 
-3. **Open your browser**
+4. **Open your browser**
 Navigate to `http://localhost:3000` to see the application
+
+### Environment Variables
+
+The backend uses the following environment variables (configured in `backend/.env`):
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `GEMINI_API_KEY` | Google Gemini AI API key | - | Yes (for AI features) |
+| `PORT` | Backend server port | 5000 | No |
+| `NODE_ENV` | Environment mode | development | No |
+| `MAX_FILE_SIZE` | Maximum upload file size in bytes | 5242880 (5MB) | No |
+| `UPLOAD_DIR` | Directory for uploaded files | uploads | No |
+| `CACHE_SIZE` | Maximum cache entries | 50 | No |
+
+**Getting a Gemini API Key:**
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Sign in with your Google account
+3. Create a new API key
+4. Copy the key to your `.env` file
 
 ## 🔧 Configuration
 
