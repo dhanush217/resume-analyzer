@@ -45,12 +45,49 @@ const upload = multer({
   }
 });
 
-app.use(cors());
+// Configure CORS to allow Vercel frontend
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://resume-analyzer-sigma-ten.vercel.app',
+    'https://*.vercel.app'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
 // Simple cache for extracted text to avoid re-processing same files
 const extractionCache = new Map();
+
+// Health check route
+app.get('/', (req, res) => {
+  res.json({
+    status: 'healthy',
+    message: '🚀 AI Resume Analyzer Backend is running!',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/',
+      jobRoles: '/api/job-roles',
+      analyze: '/api/analyze',
+      analyzeText: '/api/analyze-text'
+    }
+  });
+});
+
+// API health check
+app.get('/api', (req, res) => {
+  res.json({
+    status: 'healthy',
+    message: 'API is working correctly',
+    availableEndpoints: ['/api/job-roles', '/api/analyze', '/api/analyze-text']
+  });
+});
 
 // Helper function to try PDF extraction with multiple strategies
 async function tryPdfExtraction(dataBuffer) {
