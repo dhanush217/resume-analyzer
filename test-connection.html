@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Connection Test</title>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'https://resume-analyzer-6f3l.onrender.com';
+        const results = document.getElementById('results');
+        
+        async function testConnection() {
+            results.innerHTML = '<p>Testing connection...</p>';
+            
+            try {
+                // Test 1: Root health check
+                console.log('Testing root health check...');
+                const rootResponse = await fetch(API_BASE_URL + '/');
+                const rootData = await rootResponse.json();
+                results.innerHTML += `<p>✅ Root health check: ${rootData.message}</p>`;
+                
+                // Test 2: API health check
+                console.log('Testing API health check...');
+                const apiResponse = await fetch(API_BASE_URL + '/api');
+                const apiData = await apiResponse.json();
+                results.innerHTML += `<p>✅ API health check: ${apiData.message}</p>`;
+                
+                // Test 3: Job roles
+                console.log('Testing job roles...');
+                const jobRolesResponse = await fetch(API_BASE_URL + '/api/job-roles');
+                const jobRolesData = await jobRolesResponse.json();
+                results.innerHTML += `<p>✅ Job roles: ${jobRolesData.roles.length} roles loaded</p>`;
+                
+                results.innerHTML += '<p><strong>🎉 All tests passed! Backend is working correctly.</strong></p>';
+                
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                results.innerHTML += `<p>❌ Connection failed: ${error.message}</p>`;
+                results.innerHTML += `<p>Check if backend is running at: ${API_BASE_URL}</p>`;
+            }
+        }
+        
+        // Run test on page load
+        testConnection();
+    </script>
+</body>
+</html>

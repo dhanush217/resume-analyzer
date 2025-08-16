@@ -16,8 +16,14 @@ import Footer from './components/Footer';
 // Pages
 import Features from './pages/Features';
 
-// API Configuration - Force production URL for Vercel
-const API_BASE_URL = 'https://resume-analyzer-6f3l.onrender.com';
+// API Configuration - Use multiple backend URLs for redundancy
+const BACKEND_URLS = [
+  'https://resume-analyzer-6f3l.onrender.com',
+  'https://resume-analyzer-backend.onrender.com',
+  'https://ai-resume-analyzer-backend.onrender.com'
+];
+
+let API_BASE_URL = BACKEND_URLS[0];
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
@@ -52,19 +58,33 @@ axios.interceptors.response.use(
 
 console.log('🔗 API Base URL:', API_BASE_URL);
 
-// API helper functions with error handling
+// API helper functions with error handling and fallback
 const api = {
-  // Test backend connection
+  // Test backend connection with multiple URLs
   testConnection: async () => {
-    try {
-      console.log('🔍 Testing connection to:', API_BASE_URL + '/api');
-      const response = await axios.get('/api');
-      console.log('✅ Connection test response:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Backend connection test failed:', error.message);
-      console.error('Full error:', error);
-      throw error;
+    for (let i = 0; i < BACKEND_URLS.length; i++) {
+      const testUrl = BACKEND_URLS[i];
+      try {
+        console.log(`🔍 Testing connection to: ${testUrl}/api`);
+        const response = await fetch(`${testUrl}/api`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Connection successful with:', testUrl);
+          API_BASE_URL = testUrl;
+          axios.defaults.baseURL = API_BASE_URL;
+          return data;
+        }
+      } catch (error) {
+        console.log(`❌ Failed to connect to ${testUrl}:`, error.message);
+        if (i === BACKEND_URLS.length - 1) {
+          throw new Error('All backend URLs failed');
+        }
+      }
     }
   },
 
@@ -107,30 +127,39 @@ function ResumeAnalyzer() {
       console.log('🌅 Waking up backend server...');
       toast.loading('Connecting to backend...', { id: 'backend-connection' });
 
-      // First test backend connection with retries
-      for (let attempt = 1; attempt <= 5; attempt++) {
+      // Test backend connection with multiple attempts and URLs
+      let connected = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          console.log(`🔍 Testing backend connection (attempt ${attempt}/5)...`);
+          console.log(`🔍 Testing backend connection (attempt ${attempt}/3)...`);
           await api.testConnection();
           console.log('✅ Backend connection successful');
           toast.success('Connected to backend!', { id: 'backend-connection' });
+          connected = true;
           break;
         } catch (error) {
           console.error(`❌ Backend connection attempt ${attempt} failed:`, error.message);
 
-          if (attempt === 5) {
-            toast.error(`Failed to connect to backend after 5 attempts. The server might be down.`, { id: 'backend-connection' });
-            setJobRolesLoading(false);
-            return;
+          if (attempt < 3) {
+            toast.loading(`Trying backup servers... (${attempt + 1}/3)`, { id: 'backend-connection' });
+            await new Promise(resolve => setTimeout(resolve, 3000));
           }
-
-          // Show progress to user
-          toast.loading(`Connecting... (attempt ${attempt + 1}/5)`, { id: 'backend-connection' });
-
-          // Wait longer for first few attempts (Render wake-up time)
-          const waitTime = attempt <= 2 ? 5000 : 2000;
-          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
+      }
+
+      if (!connected) {
+        console.log('🔄 All backend URLs failed, using fallback mode...');
+        toast.error('Backend unavailable. Using offline mode with limited features.', { id: 'backend-connection' });
+
+        // Set fallback job roles
+        const fallbackRoles = [
+          'Full Stack Developer', 'Java Developer', 'Python Developer',
+          'UI/UX Designer', 'SEO', 'PROMPT Engineering',
+          'Mechanical Engineering', 'Medical', 'HR'
+        ];
+        setJobRoles(fallbackRoles);
+        setJobRolesLoading(false);
+        return;
       }
 
       // Then load job roles
@@ -194,11 +223,59 @@ function ResumeAnalyzer() {
       }
     } catch (error) {
       console.error('Error analyzing file:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to analyze resume. Please try again.';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+
+      // Fallback to basic analysis
+      console.log('🔄 Using fallback analysis...');
+      toast.loading('Backend unavailable, using offline analysis...', { id: 'analysis' });
+
+      try {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          const fallbackResult = performBasicAnalysis(text, selectedJobRole);
+          setAnalysisResults(fallbackResult);
+          toast.success('Offline analysis completed!', { id: 'analysis' });
+          setLoading(false);
+        };
+        reader.readAsText(file);
+      } catch (fallbackError) {
+        toast.error('Analysis failed. Please try again later.', { id: 'analysis' });
+        setLoading(false);
+      }
     }
+  };
+
+  // Basic offline analysis function
+  const performBasicAnalysis = (text, jobRole) => {
+    const keywords = {
+      'Full Stack Developer': ['javascript', 'react', 'node', 'html', 'css', 'mongodb', 'express', 'api', 'frontend', 'backend'],
+      'Java Developer': ['java', 'spring', 'hibernate', 'maven', 'junit', 'sql', 'rest', 'microservices'],
+      'Python Developer': ['python', 'django', 'flask', 'pandas', 'numpy', 'sql', 'api', 'machine learning'],
+      'UI/UX Designer': ['figma', 'sketch', 'adobe', 'wireframe', 'prototype', 'user experience', 'design'],
+      'SEO': ['seo', 'google analytics', 'keywords', 'content', 'marketing', 'optimization'],
+      'PROMPT Engineering': ['ai', 'gpt', 'prompt', 'machine learning', 'nlp', 'chatbot'],
+      'Mechanical Engineering': ['autocad', 'solidworks', 'manufacturing', 'design', 'engineering'],
+      'Medical': ['medical', 'healthcare', 'patient', 'clinical', 'diagnosis', 'treatment'],
+      'HR': ['recruitment', 'hiring', 'hr', 'human resources', 'employee', 'management']
+    };
+
+    const roleKeywords = keywords[jobRole] || [];
+    const textLower = text.toLowerCase();
+    const matchedKeywords = roleKeywords.filter(keyword => textLower.includes(keyword));
+    const score = Math.min(95, (matchedKeywords.length / roleKeywords.length) * 100);
+
+    return {
+      success: true,
+      analysis: {
+        overallScore: Math.round(score),
+        technicalScore: Math.round(score * 0.8),
+        softSkillsScore: Math.round(score * 0.2 + 60),
+        matchedKeywords: matchedKeywords,
+        missingKeywords: roleKeywords.filter(k => !matchedKeywords.includes(k)),
+        feedback: `Offline analysis complete. Matched ${matchedKeywords.length} out of ${roleKeywords.length} key skills for ${jobRole}.`,
+        analysisMethod: 'Offline Keyword Analysis'
+      }
+    };
   };
 
   // Handle text-based analysis
