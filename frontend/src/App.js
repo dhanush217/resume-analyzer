@@ -16,41 +16,74 @@ import Footer from './components/Footer';
 // Pages
 import Features from './pages/Features';
 
-// API Configuration
-const getApiBaseUrl = () => {
-  // Production: Use environment variable or fallback to Render URL
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_API_URL || 'https://resume-analyzer-6f3l.onrender.com';
+// API Configuration - Force production URL for Vercel
+const API_BASE_URL = 'https://resume-analyzer-6f3l.onrender.com';
+
+// Configure axios defaults
+axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.timeout = 30000;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+// Add axios interceptors for better error handling
+axios.interceptors.request.use(
+  (config) => {
+    console.log(`🚀 Making request to: ${config.baseURL}${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
   }
-  // Development: Use proxy (empty string) or localhost
-  return process.env.REACT_APP_API_URL || '';
-};
+);
 
-const API_BASE_URL = getApiBaseUrl();
+axios.interceptors.response.use(
+  (response) => {
+    console.log(`✅ Response received from: ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error('Response error:', error.message);
+    if (error.code === 'NETWORK_ERROR') {
+      console.error('Network error - backend might be down or CORS issue');
+    }
+    return Promise.reject(error);
+  }
+);
 
-console.log('🔗 API Base URL:', API_BASE_URL || 'Using proxy');
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 // API helper functions with error handling
 const api = {
   // Test backend connection
   testConnection: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api`, { timeout: 10000 });
+      console.log('🔍 Testing connection to:', API_BASE_URL + '/api');
+      const response = await axios.get('/api');
+      console.log('✅ Connection test response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Backend connection test failed:', error);
+      console.error('❌ Backend connection test failed:', error.message);
+      console.error('Full error:', error);
       throw error;
     }
   },
 
-  getJobRoles: () => axios.get(`${API_BASE_URL}/api/job-roles`, { timeout: 10000 }),
+  getJobRoles: () => {
+    console.log('📊 Fetching job roles from:', API_BASE_URL + '/api/job-roles');
+    return axios.get('/api/job-roles');
+  },
 
-  analyzeFile: (formData) => axios.post(`${API_BASE_URL}/api/analyze-file`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 30000 // 30 seconds for file upload
-  }),
+  analyzeFile: (formData) => {
+    console.log('📄 Analyzing file via:', API_BASE_URL + '/api/analyze-file');
+    return axios.post('/api/analyze-file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
 
-  analyzeText: (data) => axios.post(`${API_BASE_URL}/api/analyze-text`, data, { timeout: 30000 })
+  analyzeText: (data) => {
+    console.log('📝 Analyzing text via:', API_BASE_URL + '/api/analyze-text');
+    return axios.post('/api/analyze-text', data);
+  }
 };
 
 
@@ -70,16 +103,34 @@ function ResumeAnalyzer() {
     const initializeApp = async () => {
       setJobRolesLoading(true);
 
-      // First test backend connection
-      try {
-        console.log('🔍 Testing backend connection...');
-        await api.testConnection();
-        console.log('✅ Backend connection successful');
-      } catch (error) {
-        console.error('❌ Backend connection failed:', error);
-        toast.error('Failed to connect to backend. Please check if the server is running.');
-        setJobRolesLoading(false);
-        return;
+      // Wake up Render backend (free tier goes to sleep)
+      console.log('🌅 Waking up backend server...');
+      toast.loading('Connecting to backend...', { id: 'backend-connection' });
+
+      // First test backend connection with retries
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+          console.log(`🔍 Testing backend connection (attempt ${attempt}/5)...`);
+          await api.testConnection();
+          console.log('✅ Backend connection successful');
+          toast.success('Connected to backend!', { id: 'backend-connection' });
+          break;
+        } catch (error) {
+          console.error(`❌ Backend connection attempt ${attempt} failed:`, error.message);
+
+          if (attempt === 5) {
+            toast.error(`Failed to connect to backend after 5 attempts. The server might be down.`, { id: 'backend-connection' });
+            setJobRolesLoading(false);
+            return;
+          }
+
+          // Show progress to user
+          toast.loading(`Connecting... (attempt ${attempt + 1}/5)`, { id: 'backend-connection' });
+
+          // Wait longer for first few attempts (Render wake-up time)
+          const waitTime = attempt <= 2 ? 5000 : 2000;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
 
       // Then load job roles
