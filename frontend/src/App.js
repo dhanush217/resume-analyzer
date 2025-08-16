@@ -16,18 +16,41 @@ import Footer from './components/Footer';
 // Pages
 import Features from './pages/Features';
 
-// API Configuration - Use proxy for development
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL || 'http://localhost:5000'
-  : ''; // Use proxy in development
+// API Configuration
+const getApiBaseUrl = () => {
+  // Production: Use environment variable or fallback to Render URL
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.REACT_APP_API_URL || 'https://resume-analyzer-6f3l.onrender.com';
+  }
+  // Development: Use proxy (empty string) or localhost
+  return process.env.REACT_APP_API_URL || '';
+};
 
-// API helper functions
+const API_BASE_URL = getApiBaseUrl();
+
+console.log('🔗 API Base URL:', API_BASE_URL || 'Using proxy');
+
+// API helper functions with error handling
 const api = {
-  getJobRoles: () => axios.get(`${API_BASE_URL}/api/job-roles`),
+  // Test backend connection
+  testConnection: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api`, { timeout: 10000 });
+      return response.data;
+    } catch (error) {
+      console.error('Backend connection test failed:', error);
+      throw error;
+    }
+  },
+
+  getJobRoles: () => axios.get(`${API_BASE_URL}/api/job-roles`, { timeout: 10000 }),
+
   analyzeFile: (formData) => axios.post(`${API_BASE_URL}/api/analyze-file`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000 // 30 seconds for file upload
   }),
-  analyzeText: (data) => axios.post(`${API_BASE_URL}/api/analyze-text`, data)
+
+  analyzeText: (data) => axios.post(`${API_BASE_URL}/api/analyze-text`, data, { timeout: 30000 })
 };
 
 
@@ -42,16 +65,32 @@ function ResumeAnalyzer() {
   const [inputMode, setInputMode] = useState('file'); // 'file' or 'text'
   const [resumeText, setResumeText] = useState('');
 
-  // Load job roles from API
+  // Test backend connection and load job roles
   useEffect(() => {
-    const loadJobRoles = async () => {
+    const initializeApp = async () => {
       setJobRolesLoading(true);
+
+      // First test backend connection
       try {
+        console.log('🔍 Testing backend connection...');
+        await api.testConnection();
+        console.log('✅ Backend connection successful');
+      } catch (error) {
+        console.error('❌ Backend connection failed:', error);
+        toast.error('Failed to connect to backend. Please check if the server is running.');
+        setJobRolesLoading(false);
+        return;
+      }
+
+      // Then load job roles
+      try {
+        console.log('📊 Loading job roles...');
         const response = await api.getJobRoles();
         const roles = response.data.roles || [];
         setJobRoles(roles);
         // Don't auto-select first role - let user choose
-        toast.success('Job roles loaded successfully!');
+        toast.success('Connected to backend successfully!');
+        console.log('✅ Job roles loaded:', roles.length);
       } catch (error) {
         console.error('Error loading job roles:', error);
 
@@ -76,7 +115,7 @@ function ResumeAnalyzer() {
       }
     };
 
-    loadJobRoles();
+    initializeApp();
   }, []);
 
   // Handle file upload analysis
