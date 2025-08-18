@@ -45,19 +45,13 @@ const upload = multer({
   }
 });
 
-// Configure CORS to allow Vercel frontend
-const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://resume-analyzer-sigma-ten.vercel.app',
-    'https://*.vercel.app'
-  ],
+// Configure CORS to allow all origins - this will fix the CORS issues
+app.use(cors({
+  origin: true,
   credentials: true,
   optionsSuccessStatus: 200
-};
+}));
 
-app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
@@ -87,6 +81,91 @@ app.get('/api', (req, res) => {
     message: 'API is working correctly',
     availableEndpoints: ['/api/job-roles', '/api/analyze', '/api/analyze-text']
   });
+});
+
+// Enhanced health check with system information
+app.get('/api/health', (req, res) => {
+  // Check if AI service is available
+  const aiEnabled = config.ai.geminiApiKey && config.ai.geminiApiKey.length > 0;
+  
+  // Get memory usage
+  const memoryUsage = process.memoryUsage();
+  
+  // Get uptime
+  const uptime = process.uptime();
+  
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    aiEnabled: aiEnabled,
+    features: ['AI Analysis', 'Keyword Fallback', 'Weighted Scoring'],
+    system: {
+      memory: {
+        rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
+        external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+      },
+      uptime: Math.round(uptime) + ' seconds',
+      nodeVersion: process.version
+    }
+  });
+});
+
+// Deep health check - verifies database connectivity and external services
+app.get('/api/health/deep', async (req, res) => {
+  try {
+    // Check if we can access job roles
+    const roles = Object.keys(atsKeywords);
+    
+    // Check if file upload directory exists
+    const uploadDirExists = fs.existsSync(config.upload.uploadDir);
+    
+    // Check if AI service is configured
+    const aiConfigured = config.ai.geminiApiKey && config.ai.geminiApiKey.length > 0;
+    
+    // Get memory usage
+    const memoryUsage = process.memoryUsage();
+    
+    // Get uptime
+    const uptime = process.uptime();
+    
+    res.json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      checks: {
+        jobRoles: {
+          status: 'OK',
+          count: roles.length
+        },
+        fileUpload: {
+          status: uploadDirExists ? 'OK' : 'ERROR',
+          directory: config.upload.uploadDir,
+          exists: uploadDirExists
+        },
+        aiService: {
+          status: aiConfigured ? 'OK' : 'WARNING',
+          configured: aiConfigured
+        },
+        system: {
+          memory: {
+            rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
+            heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
+            heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB'
+          },
+          uptime: Math.round(uptime) + ' seconds',
+          nodeVersion: process.version
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Deep health check failed:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
 });
 
 // Helper function to try PDF extraction with multiple strategies
@@ -285,8 +364,6 @@ async function analyzeResumeWithAI(resumeText, jobRole) {
   }
 }
 
-
-
 // Extract specific sections from resume
 function extractSection(resumeText, sectionType) {
   const text = resumeText.toLowerCase();
@@ -463,16 +540,6 @@ app.get('/api/job-roles', (req, res) => {
     console.error('Error fetching job roles:', error);
     res.status(500).json({ error: 'Failed to fetch job roles' });
   }
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    aiEnabled: true,
-    features: ['AI Analysis', 'Keyword Fallback', 'Weighted Scoring']
-  });
 });
 
 // Error handling middleware

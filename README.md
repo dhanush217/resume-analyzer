@@ -201,6 +201,8 @@ The backend server runs on port 5000 by default. You can modify this in `backend
 const port = process.env.PORT || 5000;
 ```
 
+The backend includes enhanced CORS configuration to support multiple origins including localhost for development and various production domains.
+
 ### Frontend Configuration
 The frontend is configured to proxy API requests to `http://localhost:5000`. This is set in `frontend/package.json`:
 
@@ -216,6 +218,63 @@ REACT_APP_API_URL=http://localhost:5000
 ```
 
 ## 🎯 API Endpoints
+
+### GET /api/health
+Returns the health status of the backend service.
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "timestamp": "2023-01-01T00:00:00.000Z",
+  "aiEnabled": true,
+  "features": ["AI Analysis", "Keyword Fallback", "Weighted Scoring"],
+  "system": {
+    "memory": {
+      "rss": "50 MB",
+      "heapTotal": "30 MB",
+      "heapUsed": "25 MB"
+    },
+    "uptime": "120 seconds",
+    "nodeVersion": "v18.12.0"
+  }
+}
+```
+
+### GET /api/health/deep
+Returns detailed health status including job roles, file upload directory, and AI service configuration.
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "timestamp": "2023-01-01T00:00:00.000Z",
+  "checks": {
+    "jobRoles": {
+      "status": "OK",
+      "count": 9
+    },
+    "fileUpload": {
+      "status": "OK",
+      "directory": "uploads",
+      "exists": true
+    },
+    "aiService": {
+      "status": "OK",
+      "configured": true
+    },
+    "system": {
+      "memory": {
+        "rss": "50 MB",
+        "heapTotal": "30 MB",
+        "heapUsed": "25 MB"
+      },
+      "uptime": "120 seconds",
+      "nodeVersion": "v18.12.0"
+    }
+  }
+}
+```
 
 ### GET /api/job-roles
 Returns available job roles for analysis.

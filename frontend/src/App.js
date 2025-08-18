@@ -16,8 +16,9 @@ import Footer from './components/Footer';
 // Pages
 import Features from './pages/Features';
 
-// API Configuration - Use multiple backend URLs for redundancy
+// API Configuration - Use local backend first, then remote as fallback
 const BACKEND_URLS = [
+  'http://localhost:5000',
   'https://resume-analyzer-6f3l.onrender.com',
   'https://resume-analyzer-backend.onrender.com',
   'https://ai-resume-analyzer-backend.onrender.com'
@@ -105,8 +106,6 @@ const api = {
     return axios.post('/api/analyze-text', data);
   }
 };
-
-
 
 // Main Analyzer Component
 function ResumeAnalyzer() {
@@ -238,10 +237,12 @@ function ResumeAnalyzer() {
           setLoading(false);
         };
         reader.readAsText(file);
+        return; // Exit early to avoid setting loading to false twice
       } catch (fallbackError) {
         toast.error('Analysis failed. Please try again later.', { id: 'analysis' });
-        setLoading(false);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -266,15 +267,29 @@ function ResumeAnalyzer() {
 
     return {
       success: true,
+      score: Math.round(score),
+      matchedKeywords: matchedKeywords,
+      missingKeywords: roleKeywords.filter(k => !matchedKeywords.includes(k)),
+      feedback: {
+        overall: `Offline analysis complete. Matched ${matchedKeywords.length} out of ${roleKeywords.length} key skills for ${jobRole}.`,
+        strengths: [`Matched ${matchedKeywords.length} key skills`],
+        improvements: ['Add more detailed experience descriptions'],
+        recommendations: ['Include quantifiable achievements and impact metrics']
+      },
       analysis: {
-        overallScore: Math.round(score),
-        technicalScore: Math.round(score * 0.8),
-        softSkillsScore: Math.round(score * 0.2 + 60),
-        matchedKeywords: matchedKeywords,
-        missingKeywords: roleKeywords.filter(k => !matchedKeywords.includes(k)),
-        feedback: `Offline analysis complete. Matched ${matchedKeywords.length} out of ${roleKeywords.length} key skills for ${jobRole}.`,
-        analysisMethod: 'Offline Keyword Analysis'
-      }
+        matchedCount: matchedKeywords.length,
+        totalKeywords: roleKeywords.length,
+        technicalMatched: matchedKeywords.length,
+        softMatched: 0,
+        technicalTotal: roleKeywords.length,
+        softTotal: 0,
+        technicalScore: Math.round(score),
+        softScore: 60,
+        matchPercentage: Math.round((matchedKeywords.length / roleKeywords.length) * 100),
+        contextBonus: 0
+      },
+      analysisMethod: 'Offline Keyword Analysis',
+      aiPowered: false
     };
   };
 

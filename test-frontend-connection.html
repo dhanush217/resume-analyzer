@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        textarea { height: 100px; resize: vertical; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frontend-Backend Connection Test</h1>
+        <p>This page tests the connection between the frontend and backend.</p>
+
+        <!-- Backend Connection Test -->
+        <div id="connection-test" class="test-section loading">
+            <h3>1. Backend Connection Test</h3>
+            <p>Testing connection to: <span id="backend-url">http://localhost:5000</span></p>
+            <div id="connection-result">Testing...</div>
+        </div>
+
+        <!-- Job Roles Test -->
+        <div id="roles-test" class="test-section">
+            <h3>2. Job Roles Test</h3>
+            <button onclick="testJobRoles()">Test Job Roles</button>
+            <div id="roles-result"></div>
+        </div>
+
+        <!-- Text Analysis Test -->
+        <div id="analysis-test" class="test-section">
+            <h3>3. Text Analysis Test</h3>
+            <div class="form-group">
+                <label for="job-role">Job Role:</label>
+                <select id="job-role">
+                    <option value="">Select a job role...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="resume-text">Resume Text:</label>
+                <textarea id="resume-text" placeholder="Paste your resume text here...">John Doe
+Full Stack Developer
+
+Experience:
+- 3 years of experience in JavaScript, React, Node.js
+- Built REST APIs using Express.js
+- Worked with MongoDB and SQL databases
+- Frontend development with HTML, CSS, and React
+- Backend development with Node.js and Express
+
+Skills:
+JavaScript, React, Node.js, Express, MongoDB, HTML, CSS, Git</textarea>
+            </div>
+            <button onclick="testTextAnalysis()">Analyze Text</button>
+            <div id="analysis-result"></div>
+        </div>
+
+        <!-- File Upload Test -->
+        <div id="file-test" class="test-section">
+            <h3>4. File Upload Test</h3>
+            <div class="form-group">
+                <label for="file-job-role">Job Role:</label>
+                <select id="file-job-role">
+                    <option value="">Select a job role...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="resume-file">Resume File:</label>
+                <input type="file" id="resume-file" accept=".pdf,.docx,.txt,.doc">
+            </div>
+            <button onclick="testFileAnalysis()">Analyze File</button>
+            <div id="file-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        let jobRoles = [];
+
+        // Test backend connection on page load
+        window.onload = function() {
+            testConnection();
+        };
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            const testDiv = document.getElementById('connection-test');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <strong>✅ Connection Successful!</strong><br>
+                        Status: ${data.status}<br>
+                        Message: ${data.message}
+                    `;
+                    testDiv.className = 'test-section success';
+                    
+                    // Auto-load job roles
+                    setTimeout(testJobRoles, 1000);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <strong>❌ Connection Failed!</strong><br>
+                    Error: ${error.message}<br>
+                    <small>Make sure the backend is running on port 5000</small>
+                `;
+                testDiv.className = 'test-section error';
+            }
+        }
+
+        async function testJobRoles() {
+            const resultDiv = document.getElementById('roles-result');
+            const testDiv = document.getElementById('roles-test');
+            
+            resultDiv.innerHTML = 'Loading job roles...';
+            testDiv.className = 'test-section loading';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/job-roles`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    jobRoles = data.roles || [];
+                    
+                    resultDiv.innerHTML = `
+                        <strong>✅ Job Roles Loaded!</strong><br>
+                        Count: ${jobRoles.length}<br>
+                        Roles: ${jobRoles.join(', ')}
+                    `;
+                    testDiv.className = 'test-section success';
+                    
+                    // Populate dropdowns
+                    populateJobRoleDropdowns();
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <strong>❌ Failed to load job roles!</strong><br>
+                    Error: ${error.message}
+                `;
+                testDiv.className = 'test-section error';
+            }
+        }
+
+        function populateJobRoleDropdowns() {
+            const dropdowns = ['job-role', 'file-job-role'];
+            dropdowns.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">Select a job role...</option>';
+                jobRoles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        async function testTextAnalysis() {
+            const resultDiv = document.getElementById('analysis-result');
+            const testDiv = document.getElementById('analysis-test');
+            const jobRole = document.getElementById('job-role').value;
+            const resumeText = document.getElementById('resume-text').value;
+            
+            if (!jobRole) {
+                alert('Please select a job role');
+                return;
+            }
+            
+            if (!resumeText.trim()) {
+                alert('Please enter resume text');
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Analyzing resume...';
+            testDiv.className = 'test-section loading';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyze-text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        resumeText: resumeText.trim(),
+                        jobRole: jobRole
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+                        <strong>✅ Analysis Complete!</strong><br>
+                        <strong>Score:</strong> ${data.score}/100<br>
+                        <strong>Matched Keywords:</strong> ${data.matchedKeywords?.length || 0}<br>
+                        <strong>Missing Keywords:</strong> ${data.missingKeywords?.length || 0}<br>
+                        <strong>AI Powered:</strong> ${data.aiPowered ? 'Yes' : 'No'}<br>
+                        <strong>Method:</strong> ${data.analysisMethod || 'Unknown'}<br>
+                        <details>
+                            <summary>Full Response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                    testDiv.className = 'test-section success';
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <strong>❌ Analysis Failed!</strong><br>
+                    Error: ${error.message}
+                `;
+                testDiv.className = 'test-section error';
+            }
+        }
+
+        async function testFileAnalysis() {
+            const resultDiv = document.getElementById('file-result');
+            const testDiv = document.getElementById('file-test');
+            const jobRole = document.getElementById('file-job-role').value;
+            const fileInput = document.getElementById('resume-file');
+            
+            if (!jobRole) {
+                alert('Please select a job role');
+                return;
+            }
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Analyzing file...';
+            testDiv.className = 'test-section loading';
+            
+            try {
+                const formData = new FormData();
+                formData.append('resume', fileInput.files[0]);
+                formData.append('jobRole', jobRole);
+                
+                const response = await fetch(`${API_BASE_URL}/api/analyze-file`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    resultDiv.innerHTML = `
+                        <strong>✅ File Analysis Complete!</strong><br>
+                        <strong>Score:</strong> ${data.score}/100<br>
+                        <strong>Matched Keywords:</strong> ${data.matchedKeywords?.length || 0}<br>
+                        <strong>Missing Keywords:</strong> ${data.missingKeywords?.length || 0}<br>
+                        <strong>AI Powered:</strong> ${data.aiPowered ? 'Yes' : 'No'}<br>
+                        <strong>Method:</strong> ${data.analysisMethod || 'Unknown'}<br>
+                        <details>
+                            <summary>Full Response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                    testDiv.className = 'test-section success';
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <strong>❌ File Analysis Failed!</strong><br>
+                    Error: ${error.message}
+                `;
+                testDiv.className = 'test-section error';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -15,13 +15,23 @@ import {
 } from 'lucide-react';
 
 const AnalysisResults = ({ results, jobRole, onNewAnalysis }) => {
-  const { score, matchedKeywords, missingKeywords, feedback, analysis, aiPowered } = results;
+  // Safely extract data with fallbacks
+  const score = results?.score || 0;
+  const matchedKeywords = results?.matchedKeywords || [];
+  const missingKeywords = results?.missingKeywords || [];
+  const feedback = results?.feedback || {};
+  const analysis = results?.analysis || {};
+  const aiPowered = results?.aiPowered || false;
+
+  // Debug logging
+  console.log('AnalysisResults received:', { score, matchedKeywords, missingKeywords, feedback, analysis, aiPowered });
 
   // Determine score category and styling
   const getScoreCategory = (score) => {
-    if (score >= 80) return { category: 'excellent', color: 'success', label: 'Excellent Match' };
-    if (score >= 60) return { category: 'good', color: 'primary', label: 'Good Match' };
-    if (score >= 40) return { category: 'moderate', color: 'warning', label: 'Needs Improvement' };
+    const numScore = Number(score) || 0;
+    if (numScore >= 80) return { category: 'excellent', color: 'success', label: 'Excellent Match' };
+    if (numScore >= 60) return { category: 'good', color: 'primary', label: 'Good Match' };
+    if (numScore >= 40) return { category: 'moderate', color: 'warning', label: 'Needs Improvement' };
     return { category: 'poor', color: 'danger', label: 'Significant Issues' };
   };
 
